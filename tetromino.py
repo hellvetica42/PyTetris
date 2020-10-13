@@ -131,15 +131,22 @@ class tetromino:
         self.rotation = 0
         self.posx, self.posy = 0, 0
         self.shapes = [self.I_shape, self.L_shape, self.J_shape, self.O_shape, self.S_shape, self.Z_shape, self.T_shape]
+        self.shapeRotations = [2, 4, 4, 1, 2, 2, 4]
+        self.numRotations = 0
         self.color = self.colors[random.randint(0, len(self.colors)-1)]
         self.shape = self.getRandomShape()
         # self.shape = self.I_shape
 
     def getRandomShape(self):
-        return self.shapes[random.randint(0, len(self.shapes) - 1)]
+        tmp = random.randint(0, len(self.shapes) - 1)
+        self.numRotations = self.shapeRotations[tmp]
+        return self.shapes[tmp]
         
     def setRotation(self, r):
         self.rotation = r
+
+    def getNumRotations(self):
+        return self.numRotations
 
     def getShape(self):
         return self.shape[self.rotation]

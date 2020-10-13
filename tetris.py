@@ -74,18 +74,24 @@ def bindShape(board, boardColors, sh):
                     board[sh.getPosY() + sy][sh.getPosX() + sx] = sh.getShape()[sy][sx]
                     boardColors[sh.getPosY() + sy][sh.getPosX() + sx] = sh.color
 
-def evaluateBoard(board):
+def evaluateBoard(board, boardColor):
     v_ones = [1 for i in range(B_WIDTH)]
     v_zeros = [0 for i in range(B_WIDTH)]
     to_remove = []
-    for y in range(len(BLOCKS)):
-        if BLOCKS[y] == v_ones:
+
+    if board[0] != v_zeros:
+        return -1
+
+    for y in range(len(board)):
+        if board[y] == v_ones:
             to_remove.append(y)
     
     for y in to_remove:
         for i in range(y, 0, -1):
-            BLOCKS[i] = BLOCKS[i-1]
-            BLOCK_COLORS[i] = BLOCK_COLORS[i-1]
+            board[i] = board[i-1]
+            boardColor[i] = boardColor[i-1]
+
+    
 
     return len(to_remove)
 
@@ -100,7 +106,7 @@ def getAllFuturePositions(board, boardColor, sh):
     result = []
     resultColors = []
 
-    for i in range(4):
+    for i in range(sh.getNumRotations()):
 
         sh.setRotation(i)
 
@@ -194,10 +200,15 @@ while 1:
 
     drawBoard(BLOCKS, BLOCK_COLORS)
 
-    points = evaluateBoard(BLOCKS)
+    points = evaluateBoard(BLOCKS, BLOCK_COLORS)
     if points > 0:
         SCORE += points
         print("SCORE: ", SCORE)
+    elif points == -1:
+        print("GAME OVER")
+        print("SCORE: ", SCORE)
+        pygame.display.quit()
+        pygame.quit()
 
 
     drawShape(shape.posx, shape.posy, shape.getShape(), shape.color, screen)
