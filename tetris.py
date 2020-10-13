@@ -1,11 +1,13 @@
 import sys, pygame, random, copy
 from tetromino import *
+from utils import *
 WIDTH, HEIGHT = 500, 1000
 B_WIDTH, B_HEIGHT = 10, 20
 CELL_SIZE = WIDTH/B_WIDTH
 
 BLOCKS = [[0 for x in range(B_WIDTH)] for y in range(B_HEIGHT)]
 BLOCK_COLORS = [[(0,0,0) for x in range(B_WIDTH)] for y in range(B_HEIGHT)]
+shape = tetromino()
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -19,6 +21,7 @@ clock = pygame.time.Clock()
 
 SCORE = 0
 
+#Draws shape on screen. Used only for active shape
 def drawShape(x, y, shape, color, sc):
     for sy in range(len(shape)): 
         for sx in range(len(shape[sy])):
@@ -26,8 +29,8 @@ def drawShape(x, y, shape, color, sc):
                 pygame.draw.rect(sc, color, [(x+sx)*CELL_SIZE, (y+sy)*CELL_SIZE, CELL_SIZE, CELL_SIZE])
                 pygame.draw.rect(sc, (0,0,0), [(x+sx)*CELL_SIZE, (y+sy)*CELL_SIZE, CELL_SIZE, CELL_SIZE], 5)
 
+#if shape can be moved to x, y on tris board. Returns True/False
 def canBeMoved(board, sh, x, y):
-
     for sy in range(len(sh)):
         for sx in range(len(sh[sy])):
             if sh[sy][sx] == 1 and (x + sx < 0 or x + sx >= B_WIDTH):
@@ -39,6 +42,7 @@ def canBeMoved(board, sh, x, y):
     
     return True
 
+#How much to offset shape in x if some pixels are off screen. Returns +-x
 def getRotationOffset(sh, x, y):
     offset = 0
     for sy in range(len(sh)):
@@ -67,11 +71,12 @@ def getRotationOffset(sh, x, y):
 
     return offset
 
+#Set the shape into the given board
 def bindShape(board, boardColors, sh):
     for sy in range(len(sh.getShape())):
         for sx in range(len(sh.getShape()[sy])):
                 if sh.getShape()[sy][sx] == 1:
-                    board[sh.getPosY() + sy][sh.getPosX() + sx] = sh.getShape()[sy][sx]
+                    board[sh.getPosY() + sy][sh.getPosX() + sx] = 1
                     boardColors[sh.getPosY() + sy][sh.getPosX() + sx] = sh.color
 
 def evaluateBoard(board, boardColor):
@@ -79,7 +84,7 @@ def evaluateBoard(board, boardColor):
     v_zeros = [0 for i in range(B_WIDTH)]
     to_remove = []
 
-    if board[0] != v_zeros:
+    if board[3] != v_zeros:
         return -1
 
     for y in range(len(board)):
@@ -88,10 +93,10 @@ def evaluateBoard(board, boardColor):
     
     for y in to_remove:
         for i in range(y, 0, -1):
+            # if board[i] == v_zeros:
+            #     break
             board[i] = board[i-1]
             boardColor[i] = boardColor[i-1]
-
-    
 
     return len(to_remove)
 
@@ -120,9 +125,11 @@ def getAllFuturePositions(board, boardColor, sh):
         while canBeMoved(board, sh.getShape(), x, 0):
             while canBeMoved(board, sh.getShape(), x, y):
                 y += 1
+            
+            y -= 1
 
             sh.setPosX(x)
-            sh.setPosY(y-1)
+            sh.setPosY(y)
 
             tmp = copy.deepcopy(board) 
             tmpC = copy.deepcopy(boardColor)
@@ -133,12 +140,50 @@ def getAllFuturePositions(board, boardColor, sh):
             resultColors.append(tmpC)
 
             x += 1
-            y=0
+            y = 0
+
+            sh.setPosX(0)
+            sh.setPosY(0)
 
     return result, resultColors 
 
+#Last event of dropping
+def endTurn():
+    global SCORE
+    points = evaluateBoard(BLOCKS, BLOCK_COLORS)
+    points = 1
+    if points > 0:
+        SCORE += points
+        print("SCORE: ", SCORE)
+    elif points == -1:
+        print("GAME OVER")
+        print("SCORE: ", SCORE)
+        while True:
+            pass
 
-shape = tetromino()
+def autoDrop():
+    global BLOCKS
+    global BLOCK_COLORS
+    global shape
+    pred, predC = getAllFuturePositions(BLOCKS, BLOCK_COLORS, shape)
+    costs = [calculateBoardCost(p) for p in pred]
+    minVal = min(costs)
+    for p, pC, c in zip(pred, predC, costs):
+        # background.fill((250, 250, 250))
+        # screen.blit(background, (0,0))
+        # drawBoard(p, pC)
+        # pygame.display.flip()
+        if c == minVal:
+            print("COST: ", c)
+            BLOCKS = p
+            BLOCK_COLORS = pC
+            shape = tetromino()
+            # for b in BLOCKS:
+            #     print(b)
+            endTurn()
+            break
+
+
 # pygame.time.set_timer(pygame.USEREVENT, 500)
 while 1:
     clock.tick(30)
@@ -172,6 +217,7 @@ while 1:
                 else:
                     bindShape(BLOCKS, BLOCK_COLORS, shape)
                     shape = tetromino()
+                    endTurn()
 
             if event.key == pygame.K_SPACE:
                 tmpY = shape.getPosY()
@@ -180,14 +226,10 @@ while 1:
                 shape.setPosY(tmpY-1)
 
             if event.key == pygame.K_g:
-                pred, predC = getAllFuturePositions(BLOCKS, BLOCK_COLORS, shape)
-                save = BLOCKS
-                for p, c in zip(pred, predC):
-                    pygame.time.wait(200)
-                    background.fill((250, 250, 250))
-                    screen.blit(background, (0,0))
-                    drawBoard(p, c)
-                    pygame.display.flip()
+                autoDrop()
+
+            if event.key == pygame.K_t:
+                print(getEmptyBlocksBelowTallest(BLOCKS))
                 
 
         if event.type == pygame.USEREVENT:
@@ -197,19 +239,13 @@ while 1:
                 bindShape(BLOCKS, BLOCK_COLORS, shape)
                 shape = tetromino()
 
+    v_zeros = [0 for i in range(B_WIDTH)]
+
+    if BLOCKS[3] == v_zeros:
+        autoDrop()
+
 
     drawBoard(BLOCKS, BLOCK_COLORS)
-
-    points = evaluateBoard(BLOCKS, BLOCK_COLORS)
-    if points > 0:
-        SCORE += points
-        print("SCORE: ", SCORE)
-    elif points == -1:
-        print("GAME OVER")
-        print("SCORE: ", SCORE)
-        pygame.display.quit()
-        pygame.quit()
-
 
     drawShape(shape.posx, shape.posy, shape.getShape(), shape.color, screen)
     
