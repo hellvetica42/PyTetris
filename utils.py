@@ -1,5 +1,5 @@
 import copy
-C_HOLES = 0.5
+C_HOLES = 0.6
 C_HEIGHT = 2
 C_POINTS = 5
 C_PILLAR = 2

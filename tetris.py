@@ -153,15 +153,14 @@ def getAllFuturePositions(board, boardColor, sh):
 def endTurn():
     global SCORE
     points = evaluateBoard(BLOCKS, BLOCK_COLORS)
-    points = 1
     if points > 0:
         SCORE += points
         print("SCORE: ", SCORE)
     elif points == -1:
         print("GAME OVER")
         print("SCORE: ", SCORE)
-        while True:
-            pass
+        pygame.display.quit()
+        pygame.quit()
 
 def autoDrop():
     global BLOCKS
@@ -176,7 +175,7 @@ def autoDrop():
         # drawBoard(p, pC)
         # pygame.display.flip()
         if c == minVal:
-            # print("COST: ", c)
+            print("COST: ", c)
             BLOCKS = p
             BLOCK_COLORS = pC
             shape = tetromino()
@@ -246,13 +245,13 @@ while 1:
             (x, y) = pygame.mouse.get_pos()
             xc = math.floor((x/WIDTH) * B_WIDTH)
             yc = math.floor((y/WIDTH) * B_WIDTH)
-            BLOCKS[yc][xc] = 1
+            # BLOCKS[yc][xc] = 1
 
     v_zeros = [0 for i in range(B_WIDTH)]
 
     if BLOCKS[3] == v_zeros:
         pass
-        autoDrop()
+        # autoDrop()
     else:
         pass
 
