@@ -1,4 +1,4 @@
-import sys, pygame, random, copy
+import sys, pygame, random, copy, math
 from tetromino import *
 from utils import *
 WIDTH, HEIGHT = 500, 1000
@@ -76,8 +76,10 @@ def bindShape(board, boardColors, sh):
     for sy in range(len(sh.getShape())):
         for sx in range(len(sh.getShape()[sy])):
                 if sh.getShape()[sy][sx] == 1:
-                    board[sh.getPosY() + sy][sh.getPosX() + sx] = 1
-                    boardColors[sh.getPosY() + sy][sh.getPosX() + sx] = sh.color
+                    cy = sh.getPosY() + sy
+                    cx = sh.getPosX() + sx
+                    board[cy][cx] = 1
+                    boardColors[cy][cx] = sh.color
 
 def evaluateBoard(board, boardColor):
     v_ones = [1 for i in range(B_WIDTH)]
@@ -95,8 +97,8 @@ def evaluateBoard(board, boardColor):
         for i in range(y, 0, -1):
             # if board[i] == v_zeros:
             #     break
-            board[i] = board[i-1]
-            boardColor[i] = boardColor[i-1]
+            board[i] = board[i-1].copy()
+            boardColor[i] = boardColor[i-1].copy()
 
     return len(to_remove)
 
@@ -174,7 +176,7 @@ def autoDrop():
         # drawBoard(p, pC)
         # pygame.display.flip()
         if c == minVal:
-            print("COST: ", c)
+            # print("COST: ", c)
             BLOCKS = p
             BLOCK_COLORS = pC
             shape = tetromino()
@@ -239,6 +241,12 @@ while 1:
             else:
                 bindShape(BLOCKS, BLOCK_COLORS, shape)
                 shape = tetromino()
+        
+        if event.type == pygame.MOUSEBUTTONUP:
+            (x, y) = pygame.mouse.get_pos()
+            xc = math.floor((x/WIDTH) * B_WIDTH)
+            yc = math.floor((y/WIDTH) * B_WIDTH)
+            BLOCKS[yc][xc] = 1
 
     v_zeros = [0 for i in range(B_WIDTH)]
 
@@ -246,7 +254,7 @@ while 1:
         pass
         autoDrop()
     else:
-        print("BREAK")
+        pass
 
 
     drawBoard(BLOCKS, BLOCK_COLORS)
