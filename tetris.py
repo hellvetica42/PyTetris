@@ -229,7 +229,8 @@ while 1:
                 autoDrop()
 
             if event.key == pygame.K_t:
-                print(getEmptyBlocksBelowTallest(BLOCKS))
+                # print(getEmptyBlocksBelowTallest(BLOCKS))
+                BLOCKS[11][0] = 1
                 
 
         if event.type == pygame.USEREVENT:
@@ -242,7 +243,10 @@ while 1:
     v_zeros = [0 for i in range(B_WIDTH)]
 
     if BLOCKS[3] == v_zeros:
+        pass
         autoDrop()
+    else:
+        print("BREAK")
 
 
     drawBoard(BLOCKS, BLOCK_COLORS)
