@@ -6,17 +6,32 @@ class autoplay:
 
 
     def __init__(self, coefs):
+        self.coefs = coefs
         self.C_HOLES = coefs[0]
         self.C_HEIGHT = coefs[1] 
         self.C_POINTS = coefs[2]
-        self.C_PILLAR = coefs[3]
-        self.C_EMPTY = coefs[4]
+        self.C_EMPTY = coefs[3]
+        # self.C_PILLAR = coefs[4]
 
         self.SCORE = 0
 
         self.BLOCKS = [[0 for x in range(B_WIDTH)] for y in range(B_HEIGHT)]
         self.shape = tetromino()
         pass
+
+    def calculateBoardCost(self, board):
+        cost = 0
+        cost += self.C_HOLES * getNumHoles(board)
+        cost += self.C_HEIGHT * getBoardHeight(board)
+        # cost += C_PILLAR & getEmptyPillarBlocks(board)
+        cost += self.C_EMPTY * getEmptyBlocksBelowTallest(board)
+        cost -= self.C_POINTS * getBoardPoints(board)
+
+        return cost
+
+    def getCoefs(self):
+        return self.coefs
+
 
     def getBoard(self):
         return self.BLOCKS
@@ -100,7 +115,7 @@ class autoplay:
 
     def autoDrop(self):
         pred = self.getAllFuturePositions(self.BLOCKS, self.shape)
-        costs = [calculateBoardCost(p) for p in pred]
+        costs = [self.calculateBoardCost(p) for p in pred]
         minVal = min(costs)
         for p, c in zip(pred, costs):
             if c == minVal:

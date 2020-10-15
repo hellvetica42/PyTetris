@@ -1,16 +1,21 @@
 import sys, pygame, random, copy, math
+import pygame.freetype
 from tetromino import *
 from utils import *
 WIDTH, HEIGHT = 500, 1000
+S_WIDTH, S_HEIGHT = 900, 1000
+X_OFFSET, Y_OFFSET = 250, 0
 B_WIDTH, B_HEIGHT = 10, 20
 CELL_SIZE = WIDTH/B_WIDTH
 
 BLOCKS = [[0 for x in range(B_WIDTH)] for y in range(B_HEIGHT)]
 BLOCK_COLORS = [[(0,0,0) for x in range(B_WIDTH)] for y in range(B_HEIGHT)]
+
 shape = tetromino()
+heldShape = tetromino() 
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((S_WIDTH, S_HEIGHT))
 pygame.display.set_caption("TETRIS")
 background = pygame.Surface(screen.get_size())
 background = background.convert()
@@ -18,6 +23,7 @@ background.fill((250, 250, 250))
 screen.blit(background, (0,0))
 pygame.display.flip()
 clock = pygame.time.Clock()
+GAME_FONT = pygame.freetype.SysFont(pygame.font.get_default_font(), 25)
 
 SCORE = 0
 
@@ -26,8 +32,27 @@ def drawShape(x, y, shape, color, sc):
     for sy in range(len(shape)): 
         for sx in range(len(shape[sy])):
             if shape[sy][sx] == 1:
+                pygame.draw.rect(sc, color, [(x+sx)*CELL_SIZE+X_OFFSET, (y+sy)*CELL_SIZE + Y_OFFSET, CELL_SIZE, CELL_SIZE])
+                pygame.draw.rect(sc, (0,0,0), [(x+sx)*CELL_SIZE + X_OFFSET, (y+sy)*CELL_SIZE + Y_OFFSET, CELL_SIZE, CELL_SIZE], 5)
+
+def drawHeldShape(x, y, shape, color, sc):
+    for sy in range(len(shape)): 
+        for sx in range(len(shape[sy])):
+            if shape[sy][sx] == 1:
                 pygame.draw.rect(sc, color, [(x+sx)*CELL_SIZE, (y+sy)*CELL_SIZE, CELL_SIZE, CELL_SIZE])
                 pygame.draw.rect(sc, (0,0,0), [(x+sx)*CELL_SIZE, (y+sy)*CELL_SIZE, CELL_SIZE, CELL_SIZE], 5)
+
+def drawBoard(board, boardColor):
+    pygame.draw.rect(screen, (0,0,0), [X_OFFSET, Y_OFFSET, WIDTH, HEIGHT], 5)
+    for y in range(len(board)):
+        for x in range(len(board[y])):
+            if board[y][x] == 1:
+                pygame.draw.rect(screen, boardColor[y][x], [x*CELL_SIZE + X_OFFSET, y*CELL_SIZE + Y_OFFSET, CELL_SIZE, CELL_SIZE])
+                pygame.draw.rect(screen, (0,0,0), [x*CELL_SIZE + X_OFFSET, y*CELL_SIZE + Y_OFFSET, CELL_SIZE, CELL_SIZE], 5)
+
+    GAME_FONT.render_to(screen, (50, 200), "SCORE: " + str(SCORE), (0, 0, 0))
+
+
 
 #if shape can be moved to x, y on tris board. Returns True/False
 def canBeMoved(board, sh, x, y):
@@ -86,7 +111,7 @@ def evaluateBoard(board, boardColor):
     v_zeros = [0 for i in range(B_WIDTH)]
     to_remove = []
 
-    if board[3] != v_zeros:
+    if board[1] != v_zeros:
         return -1
 
     for y in range(len(board)):
@@ -101,13 +126,6 @@ def evaluateBoard(board, boardColor):
             boardColor[i] = boardColor[i-1].copy()
 
     return len(to_remove)
-
-def drawBoard(board, boardColor):
-    for y in range(len(board)):
-        for x in range(len(board[y])):
-            if board[y][x] == 1:
-                pygame.draw.rect(screen, boardColor[y][x], [x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE])
-                pygame.draw.rect(screen, (0,0,0), [x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE], 5)
 
 def getAllFuturePositions(board, boardColor, sh):
     result = []
@@ -155,7 +173,7 @@ def endTurn():
     points = evaluateBoard(BLOCKS, BLOCK_COLORS)
     if points > 0:
         SCORE += points
-        print("SCORE: ", SCORE)
+        # print("SCORE: ", SCORE)
     elif points == -1:
         print("GAME OVER")
         print("SCORE: ", SCORE)
@@ -166,21 +184,38 @@ def autoDrop():
     global BLOCKS
     global BLOCK_COLORS
     global shape
+    global heldShape
     pred, predC = getAllFuturePositions(BLOCKS, BLOCK_COLORS, shape)
+    predHeld, predHeldC = getAllFuturePositions(BLOCKS, BLOCK_COLORS, heldShape) 
+
     costs = [calculateBoardCost(p) for p in pred]
+    costsHeld = [calculateBoardCost(p) for p in predHeld]
+
     minVal = min(costs)
+    minValHeld = min(costsHeld)
+    if minValHeld < minVal:
+        tmp = shape
+        shape = heldShape
+        heldShape = tmp
+        pred = predHeld
+        predC = predHeldC
+        costs = costsHeld
+        minVal = minValHeld
     for p, pC, c in zip(pred, predC, costs):
         # background.fill((250, 250, 250))
         # screen.blit(background, (0,0))
         # drawBoard(p, pC)
         # pygame.display.flip()
         if c == minVal:
-            print("COST: ", c)
+            # print("COST: ", c)
             BLOCKS = p
             BLOCK_COLORS = pC
             shape = tetromino()
-            # for b in BLOCKS:
-            #     print(b)
+            # print("HOLES: ", getNumHoles(BLOCKS))
+            # print("HEIGHT: ", getBoardHeight(BLOCKS))
+            # print("PILLARS: ", getEmptyPillarBlocks(BLOCKS))
+            # print("OVERHANGS: ", getOverhangs(BLOCKS))
+            # print("///")
             endTurn()
             break
 
@@ -249,9 +284,9 @@ while 1:
 
     v_zeros = [0 for i in range(B_WIDTH)]
 
-    if BLOCKS[3] == v_zeros:
+    if BLOCKS[1] == v_zeros:
         pass
-        # autoDrop()
+        autoDrop()
     else:
         pass
 
@@ -259,5 +294,6 @@ while 1:
     drawBoard(BLOCKS, BLOCK_COLORS)
 
     drawShape(shape.posx, shape.posy, shape.getShape(), shape.color, screen)
+    drawHeldShape(0, 0, heldShape.getShape(), heldShape.color, screen)
     
     pygame.display.flip()
