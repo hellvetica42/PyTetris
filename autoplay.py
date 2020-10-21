@@ -1,5 +1,6 @@
 from utils import *
 from tetromino import *
+import concurrent.futures
 B_WIDTH, B_HEIGHT = 10, 20
 
 class autoplay:
@@ -9,28 +10,56 @@ class autoplay:
         self.coefs = coefs
         self.C_HOLES = coefs[0]
         self.C_HEIGHT = coefs[1] 
-        self.C_POINTS = coefs[2]
-        self.C_EMPTY = coefs[3]
-        # self.C_PILLAR = coefs[4]
+        self.C_PILLAR = coefs[2]
+        self.C_OVERHANG = coefs[3]
+        self.C_BUMPINESS = coefs[4]
+        self.C_BLOCKS = coefs[5]
+        self.C_LASTCOL = coefs[6]
+        self.C_POINTS = coefs[7]
 
         self.SCORE = 0
 
         self.BLOCKS = [[0 for x in range(B_WIDTH)] for y in range(B_HEIGHT)]
         self.shape = tetromino()
+        self.heldShape = tetromino()
         pass
+
+    def reset(self):
+        self.SCORE = 0
+
+        self.BLOCKS = [[0 for x in range(B_WIDTH)] for y in range(B_HEIGHT)]
+        self.shape = tetromino()
+        self.heldShape = tetromino()
 
     def calculateBoardCost(self, board):
         cost = 0
+
         cost += self.C_HOLES * getNumHoles(board)
         cost += self.C_HEIGHT * getBoardHeight(board)
-        # cost += C_PILLAR & getEmptyPillarBlocks(board)
-        cost += self.C_EMPTY * getEmptyBlocksBelowTallest(board)
+        cost += self.C_PILLAR * getEmptyPillarBlocks(board)
+        cost += self.C_OVERHANG * getOverhangs(board)
+        cost += self.C_BUMPINESS * getBumpiness(board)
+        cost += self.C_BLOCKS * getNumBlocksInLastCol(board)
+        cost += self.C_LASTCOL * getNumBlocksInLastCol(board)
+        # cost += self.C_EMPTY * getEmptyBlocksBelowTallest(board)
         cost -= self.C_POINTS * getBoardPoints(board)
 
         return cost
 
     def getCoefs(self):
         return self.coefs
+
+    def setCoefs(self, coefs):
+        self.coefs = coefs
+        self.C_HOLES = coefs[0]
+        self.C_HEIGHT = coefs[1] 
+        self.C_PILLAR = coefs[2]
+        self.C_OVERHANG = coefs[3]
+        self.C_BUMPINESS = coefs[4]
+        self.C_BLOCKS = coefs[5]
+        self.C_LASTCOL = coefs[6]
+        self.C_POINTS = coefs[7]
+
 
 
     def getBoard(self):
@@ -63,7 +92,7 @@ class autoplay:
         v_zeros = [0 for i in range(B_WIDTH)]
         to_remove = []
 
-        if board[3] != v_zeros:
+        if board[1] != v_zeros:
             return -1
 
         for y in range(len(board)):
@@ -114,16 +143,28 @@ class autoplay:
         return result
 
     def autoDrop(self):
+        
         pred = self.getAllFuturePositions(self.BLOCKS, self.shape)
+        predHeld = self.getAllFuturePositions(self.BLOCKS, self.heldShape)
+
         costs = [self.calculateBoardCost(p) for p in pred]
+        costsHeld = [self.calculateBoardCost(p) for p in predHeld]
+
         minVal = min(costs)
-        for p, c in zip(pred, costs):
-            if c == minVal:
-                # print("COST: ", c)
-                self.BLOCKS = p
-                self.shape = tetromino()
-                self.endTurn()
-                break
+        minValHeld = min(costsHeld)
+
+        if minValHeld < minVal:
+            tmp = self.shape
+            self.shape = self.heldShape
+            self.heldShape = tmp
+            pred = predHeld
+            costs = costsHeld
+            minVal = minValHeld
+
+        minIndex = costs.index(minVal)
+        self.BLOCKS = pred[minIndex]
+        self.shape = tetromino()
+        self.endTurn()
 
     def endTurn(self):
         points = self.evaluateBoard(self.BLOCKS)
@@ -135,6 +176,9 @@ class autoplay:
             # print("SCORE: ", self.SCORE)
             pass
 
+    def getScore(self):
+        return self.SCORE
+        
     def play(self):
         while self.evaluateBoard(self.BLOCKS) != -1:
             self.autoDrop()

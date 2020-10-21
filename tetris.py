@@ -193,6 +193,7 @@ def autoDrop():
 
     minVal = min(costs)
     minValHeld = min(costsHeld)
+
     if minValHeld < minVal:
         tmp = shape
         shape = heldShape
@@ -201,28 +202,16 @@ def autoDrop():
         predC = predHeldC
         costs = costsHeld
         minVal = minValHeld
-    for p, pC, c in zip(pred, predC, costs):
-        # background.fill((250, 250, 250))
-        # screen.blit(background, (0,0))
-        # drawBoard(p, pC)
-        # pygame.display.flip()
-        if c == minVal:
-            # print("COST: ", c)
-            BLOCKS = p
-            BLOCK_COLORS = pC
-            shape = tetromino()
-            # print("HOLES: ", getNumHoles(BLOCKS))
-            # print("HEIGHT: ", getBoardHeight(BLOCKS))
-            # print("PILLARS: ", getEmptyPillarBlocks(BLOCKS))
-            # print("OVERHANGS: ", getOverhangs(BLOCKS))
-            # print("///")
-            endTurn()
-            break
 
+    minIndex = costs.index(minVal)
+    BLOCKS = pred[minIndex]
+    BLOCK_COLORS = predC[minIndex]
+    shape = tetromino()
+    endTurn()
 
 # pygame.time.set_timer(pygame.USEREVENT, 500)
 while 1:
-    clock.tick(30)
+    clock.tick(60)
     background.fill((250, 250, 250))
     screen.blit(background, (0,0))
 
